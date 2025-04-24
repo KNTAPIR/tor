@@ -1,20 +1,27 @@
 package org.example;
 
-import org.example.Tor;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class Main {
 
     static boolean jedzie = false;
     static boolean przedStart = true;
+    static int arabianPeninsulaWater = 0;
+    static ExecutorService executorService = null;
 
     public static void main(String[] args) {
+
+
+
+
 
         Tor lemans = new Tor();
         JFrame frame = new JFrame("Tor");
@@ -42,10 +49,22 @@ public class Main {
         panel_kontrolny.add(start_stop);
         panel_kontrolny.add(reset_button);
 
+        //dodanie panela dla wyboru metody tworzenia wątków
+        JPanel panel_metod = new JPanel();
+        panel_metod.setLayout(new FlowLayout());
+
+        JLabel wybor_metody = new JLabel("Wybór metody:");
+        JButton dieWaleFaben = new JButton("Thread");
+
+        panel_metod.add(wybor_metody);
+        panel_metod.add(dieWaleFaben);
+
+
         // Layout calosci
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.add(lemans, BorderLayout.CENTER);
         mainPanel.add(panel_kontrolny, BorderLayout.SOUTH);
+        mainPanel.add(panel_metod, BorderLayout.NORTH);
 
         frame.setContentPane(mainPanel);
         frame.setVisible(true);
@@ -61,20 +80,48 @@ public class Main {
 //        lemans.dodanie_samochod(75,150,5,1.5*Math.PI,55,200,0);
 
         List<fil_dexecution> watki = new ArrayList<>();  // Make this a field if needed
-
+        List<Thread> watki_chinskie = new ArrayList<>();
 
         // klasa odpowiedzialna za odswiezanie ekranu
         repainterThread watekRysowniczy = new repainterThread(lemans, 60);
         watekRysowniczy.start();
 
+        dieWaleFaben.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (przedStart) {
+                    switch (arabianPeninsulaWater) {
+                        case 0:
+                            dieWaleFaben.setText("Biegaczor_" +
+                                    "coureur");
+                            arabianPeninsulaWater = 1;
+                            break;
+                        case 1:
+                            dieWaleFaben.setText("Baseniorwontki");
+                            arabianPeninsulaWater = 2;
+                            break;
+                        case 2:
+
+                            dieWaleFaben.setText("Threadzior");
+                            arabianPeninsulaWater = 0;
+                            break;
+                    }
+                }
+            }
+        });
+
         //Przycisk start-stop
         start_stop.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
+
                 int liczba_okrazen = Integer.parseInt(okrazenia.getText());
 
                 lemans.iloscOkrazenDoZrobienia = liczba_okrazen;
 
                 int liczba_samochodow = Integer.parseInt(samochody.getText());
+                 List<Future<?>> executorTasks = new ArrayList<>();
+
+
 
                 okrazenia.setEditable(false);
                 samochody.setEditable(false);
@@ -90,27 +137,133 @@ public class Main {
                 //auta zaczynaja jechac po wcsinieciu przycisku sztart
                 if (!jedzie) {
                     jedzie = true;
-                    start_stop.setText("Stop");
+                    switch(arabianPeninsulaWater){
+                        case 0:
+                            start_stop.setText("Stop");
+                            break;
+                        case 1:
 
-                    // Start new threads
-                    watki.clear();  // Optional: clear old references
-                    for (int i = 0; i < liczba_samochodow; i++) {
-                        fil_dexecution watek_samochodu = new fil_dexecution(lemans, i);
-                        watki.add(watek_samochodu);
-                        watek_samochodu.start();
+                            break;
+                        case 2:
+
+                            break;
+
                     }
+
+                    switch(arabianPeninsulaWater){
+                        case 0:
+                            watki.clear();
+                            for (int i = 0; i < liczba_samochodow; i++) {
+
+                                fil_dexecution watek_samochodu = new fil_dexecution(lemans, i);
+                                watki.add(watek_samochodu);
+                                watek_samochodu.start();
+
+                            }
+                            break;
+                        case 1:
+                            watki_chinskie.clear();
+                            for (int i = 0; i < liczba_samochodow; i++) {
+                                //komenatrz tutaj
+                                RunnableCars watek_samochodu1 = new RunnableCars(lemans, i);
+                                Thread watek_samochodu = new Thread(watek_samochodu1);
+
+                                watki_chinskie.add(watek_samochodu);
+                                watek_samochodu.start();
+                            }
+                            break;
+                        case 2:
+                            lemans.poruszaSie = true;
+                            if (executorService != null && !executorService.isShutdown()) {
+                                executorService.shutdownNow(); // zatrzymaj poprzednie
+                            }
+
+                            executorService = Executors.newFixedThreadPool(10000);
+                            executorTasks.clear();
+
+                            for (int i = 0; i < liczba_samochodow; i++) {
+                                int finalI = i;
+                                Future<?> task = executorService.submit(() -> {
+                                    try {
+                                        while (lemans.poruszaSie &&
+                                                lemans.zbior_samochod.elementAt(finalI).iloscPrzejechnychOkrazen() < lemans.iloscOkrazenDoZrobienia) {
+                                            lemans.zbior_samochod.elementAt(finalI).obliczane_pozycji();
+                                            Thread.sleep(100);
+                                        }
+
+                                        if (lemans.poruszaSie) {
+                                            int przesuniecieX = lemans.ileSkonczylo / 20;
+                                            int przesuniecieY = lemans.ileSkonczylo % 20;
+                                            lemans.zbior_samochod.elementAt(finalI)
+                                                    .przeniesAuto(400 + przesuniecieX * 20, 100 + przesuniecieY * 20);
+                                            lemans.ileSkonczylo++;
+                                            if(lemans.ileSkonczylo >= liczba_samochodow){
+                                                lemans.poruszaSie = false;
+                                                System.out.println("ZABILIŚMY GO 🔥");
+                                                executorService.shutdownNow();
+
+                                            }
+                                        }
+
+                                        if(lemans.ileSkonczylo == liczba_samochodow){
+                                            lemans.poruszaSie = false;
+                                            executorService.shutdownNow();
+                                            System.out.println("ZABILIŚMY GO 🔥");
+                                        }
+
+                                    } catch (InterruptedException e1) {
+                                        Thread.currentThread().interrupt(); // oznacz, że wątek przerwany
+                                    }
+                                });
+
+                                executorTasks.add(task);
+                            }
+
+
+                        break;
+                    }
+
 
                 //auta zatrzymuja sie po wcsinieciu przycisku sztop
                 } else {
-                    jedzie = false;
+                    switch(arabianPeninsulaWater){
+                        case 0:
+                            jedzie = false;
 
-                    start_stop.setText("Start");
+                            start_stop.setText("Start");
 
-                    // Stop all threads
-                    for (fil_dexecution watek : watki) {
-                        watek.stopThread();
+                            // Stop all threads
+
+                            switch(arabianPeninsulaWater){
+                                case 0:
+                                    for (fil_dexecution watek : watki) {
+                                        watek.stopThread();
+                                    }
+                                    break;
+                                case 1:
+                                    for (Thread watek : watki_chinskie) {
+                                        try {
+                                            watek.wait();
+                                        } catch (InterruptedException ex) {
+                                            throw new RuntimeException(ex);
+                                        }
+                                    }
+                                    break;
+                                case 2:
+                                    break;
+                            }
+                            break;
+                        case 1:
+
+                            break;
+                        case 2:
+
+                            break;
                     }
+
+
                     System.out.println(Thread.activeCount());
+                    System.out.println("liczbasamohodow: "+lemans.ileSkonczylo);
                 }
             }
         });

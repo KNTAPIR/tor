@@ -21,6 +21,7 @@ public class fil_dexecution extends Thread {
         lemans.poruszaSie = false;
     }
 
+    @Override
     public void run() {
         try {
             while (lemans.poruszaSie && lemans.zbior_samochod.elementAt(numer_samochodu).iloscPrzejechnychOkrazen() < iloscOkrazenDoZrobienia) {
